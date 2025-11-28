@@ -1,7 +1,8 @@
 # ShellSploit
 This is a tool i made when i got bored.
 
-![ShellSploit](Screenshot from 2025-11-28 15-51-36.png)
+![ShellSploit Banner](https://raw.githubusercontent.com/GdevMan/ShellSploit/main/Screenshot%20from%202025-11-28%2015-51-36.png)
+
 
 
 ## Legal Notice
